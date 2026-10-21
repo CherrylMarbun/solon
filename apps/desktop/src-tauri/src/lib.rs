@@ -10,6 +10,7 @@ mod docker;
 mod files;
 mod git;
 mod host;
+mod import;
 mod service;
 mod shell;
 mod stacks;
@@ -270,6 +271,8 @@ pub fn run() {
             backup::project_backup,
             backup::project_backup_info,
             backup::project_restore,
+            import::import_probe,
+            import::import_run,
             git::git_info,
             git::volumes_clone,
             host::host_disk_info,

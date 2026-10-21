@@ -7,9 +7,10 @@ import { useTranslation } from "react-i18next";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { backup, compose, containers, engine, stacks, type ContainerSummary, type Probe } from "../api";
+import { backup, compose, containers, engine, importer, stacks, type ContainerSummary, type Probe } from "../api";
 import { StackDialog } from "../components/StackDialog";
 import { ScanDialog } from "../components/ScanDialog";
+import { ImportDialog } from "../components/ImportDialog";
 import { Avatar, EmptyState, IconBox, IconFolderOpen, IconGlobe, PageHeader, imageBase } from "../components/ui";
 import { IconPlay, IconStop } from "../components/Icons";
 import { useEngine, markUserAction } from "../engine";
@@ -79,6 +80,12 @@ export function ProjectsView({ onOpenProject, onOpenContainer }: { onOpenProject
   const [stackDialog, setStackDialog] = useState<{ open: boolean; probe: Probe | null }>({ open: false, probe: null });
   const [restoring, setRestoring] = useState<string | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
+  // Le bouton d'import n'apparaît que si Docker Desktop est là : inutile de le proposer sinon.
+  const [importOpen, setImportOpen] = useState(false);
+  const [canImport, setCanImport] = useState(false);
+  useEffect(() => {
+    void importer.probe().then((s) => setCanImport(s.available)).catch(() => setCanImport(false));
+  }, []);
 
   /** Restaurer une sauvegarde : le zip, un aperçu, le dossier de destination, puis la page du projet. */
   async function restoreBackup() {
@@ -233,6 +240,7 @@ export function ProjectsView({ onOpenProject, onOpenContainer }: { onOpenProject
             <button type="button" className="btn btn-sm" onClick={() => setStackDialog({ open: true, probe: null })}><IconGlobe />{t("stacks.new")}</button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setScanOpen(true)}>{t("scan.button")}</button>
             <button type="button" className="btn btn-ghost btn-sm" disabled={restoring !== null} onClick={() => void restoreBackup()}>{restoring ?? t("projects.restore")}</button>
+            {canImport && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setImportOpen(true)}>{t("import.button")}</button>}
           </>
         }
       />
@@ -399,6 +407,14 @@ export function ProjectsView({ onOpenProject, onOpenContainer }: { onOpenProject
         )}
       </div>
 
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onDone={() => {
+          void queryClient.invalidateQueries({ queryKey: ["volumes"] });
+          void queryClient.invalidateQueries({ queryKey: ["images"] });
+        }}
+      />
       <ScanDialog
         open={scanOpen}
         onClose={() => setScanOpen(false)}

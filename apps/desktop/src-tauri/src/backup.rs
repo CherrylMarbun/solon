@@ -51,11 +51,11 @@ pub struct RestoreReport {
     pub volumes: usize,
 }
 
-fn shell_quote(s: &str) -> String {
+pub(crate) fn shell_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
 }
 
-async fn exec(command: String, timeout_s: u64) -> Result<(i32, String, String), String> {
+pub(crate) async fn exec(command: String, timeout_s: u64) -> Result<(i32, String, String), String> {
     let v = service::call(ServiceCommand::Exec {
         command,
         timeout_s: Some(timeout_s),
@@ -76,7 +76,7 @@ async fn exec(command: String, timeout_s: u64) -> Result<(i32, String, String), 
 }
 
 /// Dossier temporaire Windows visible depuis la machine (`/mnt/host/c/Users/…/Temp/solon-backup-<n>`).
-async fn shared_temp(prefix: &str) -> Result<(PathBuf, String), String> {
+pub(crate) async fn shared_temp(prefix: &str) -> Result<(PathBuf, String), String> {
     let dir = std::env::temp_dir().join(format!("{prefix}-{}", std::process::id()));
     if dir.exists() {
         std::fs::remove_dir_all(&dir).map_err(|e| e.to_string())?;

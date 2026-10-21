@@ -34,6 +34,9 @@ volumes, networks, terminal, logs, a system-tray icon, and a few things nothing 
 - Shares your Windows folders on demand: `docker run -v C:\...`, `--mount`, Compose projects, exactly like
   Docker Desktop, through **solonfs**, Solon's own file sharing, measured 4 to 94 times faster than the 9P
   sharing used by WSL2 and Docker Desktop.
+- **Import from Docker Desktop**: if it is installed and running, Solon lists its volumes and images
+  with their sizes and copies the ones you tick into its own engine. Nothing is changed or removed on
+  the Docker Desktop side, and anything already in Solon under the same name is left alone.
 - **Addresses that always work**: every running container is reachable at `https://<name>.solon.local`
   (and `https://<service>.<project>.solon.local` for Compose), **whether it publishes a port or not**, with a
   certificate your browser trusts (a local certificate authority created on first use). Container IPs
@@ -335,7 +338,6 @@ Solon is young and the list of what is left to do is longer than the list of wha
 next things I want to build, each with an issue you can comment on or take:
 
 - **Update images from the app** ([#3](https://github.com/v94lere/solon/issues/3)): a badge when a newer image exists, one button to pull and recreate.
-- **Import from Docker Desktop** ([#4](https://github.com/v94lere/solon/issues/4)): find its volumes and copy them into Solon, so switching costs nothing.
 - **Relay UDP published ports** ([#5](https://github.com/v94lere/solon/issues/5)), the last gap against `docker run -p`.
 - **Hot reload from Windows** ([#7](https://github.com/v94lere/solon/issues/7)): tell the container when a Windows file changes, so Vite, nodemon and Odoo's reloader notice.
 - **Windows 10**, tested rather than assumed.

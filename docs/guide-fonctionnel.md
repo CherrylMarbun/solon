@@ -74,6 +74,13 @@ adresse et Start / Stop.
   `devcontainer.json`, hors dossiers système, de dépendances et de cache. On coche ceux à garder ; un dossier
   sans Compose a un bouton « Configurer… » qui l'envoie dans la galerie. Rien ne quitte le PC.
 - **Restaurer une sauvegarde…** : voir § 5.4.
+- **Importer depuis Docker Desktop…**, visible seulement si Docker Desktop est installé et démarré :
+  Solon liste ses volumes et ses images avec leur taille, on coche, et il les copie dans son propre
+  moteur. Les volumes sont cochés d'avance (ce sont vos bases, la seule chose qu'on ne peut pas
+  refaire) ; les images ne le sont pas, elles se retéléchargent. **Rien n'est modifié ni supprimé du
+  côté de Docker Desktop**, et ce qui porte déjà le même nom dans Solon n'est jamais écrasé. Les
+  conteneurs ne sont pas importés : ils se recréent depuis le fichier Compose, et « Chercher les
+  projets sur ce PC » retrouve déjà les dossiers.
 
 ## 5. La page d'un projet
 

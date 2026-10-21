@@ -420,6 +420,45 @@ export interface HostDiskInfo {
   drive_total_bytes: number;
   drive_free_bytes: number;
 }
+// ---- Import depuis une installation Docker Desktop existante ----
+export interface ImportItem {
+  name: string;
+  /** Taille en octets, `null` quand Docker Desktop ne la donne pas. */
+  size: number | null;
+  in_use: boolean;
+  /** Déjà présent dans Solon : jamais écrasé. */
+  exists_here: boolean;
+}
+export interface ImportSource {
+  available: boolean;
+  version: string | null;
+  reason: string | null;
+  volumes: ImportItem[];
+  images: ImportItem[];
+}
+export interface ImportProgress {
+  kind: "step";
+  label: string;
+  done: number;
+  total: number;
+}
+export interface ImportReport {
+  volumes_imported: string[];
+  images_imported: string[];
+  skipped: [string, string][];
+}
+
+export const importer = {
+  /** Docker Desktop est-il installé et démarré, et que contient-il ? Ne modifie rien. */
+  probe: () => invoke<ImportSource>("import_probe"),
+  /** Copie les volumes et images choisis vers Solon ; la source n'est pas touchée. */
+  run: (volumes: string[], images: string[], onProgress: (p: ImportProgress) => void) => {
+    const progress = new Channel<ImportProgress>();
+    progress.onmessage = onProgress;
+    return invoke<ImportReport>("import_run", { volumes, images, progress });
+  },
+};
+
 export const host = {
   portsProbe: (ports: number[]) => invoke<PortProbe[]>("ports_probe", { ports }),
   diskInfo: () => invoke<HostDiskInfo>("host_disk_info"),
