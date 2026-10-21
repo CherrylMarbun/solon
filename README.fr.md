@@ -32,6 +32,9 @@ moteur Docker, Compose, images, volumes, réseaux, terminal, journaux, et une ic
 - Relaie les ports publiés vers `localhost` sans configuration.
 - Partage vos dossiers Windows à la demande : `docker run -v C:\...`, `--mount`, projets Compose, exactement
   comme avec Docker Desktop (le lecteur est partagé à la volée et remonté à chaque démarrage).
+- **Import depuis Docker Desktop** : s'il est installé et démarré, Solon liste ses volumes et ses images
+  avec leur taille et copie ceux que vous cochez dans son propre moteur. Rien n'est modifié ni supprimé
+  du côté de Docker Desktop, et ce qui porte déjà le même nom dans Solon n'est pas touché.
 - Mémoire au repos (moteur + service) : **430 à 520 Mo** mesurés pour 2 Go alloués.
 - **Aucune télémétrie, aucune requête réseau sortante** en dehors de ce que vos conteneurs et vos
   `docker pull` demandent.
@@ -364,8 +367,6 @@ prochains chantiers, chacun avec une issue où commenter ou se lancer :
 
 - **Mettre à jour les images depuis l'application** ([#3](https://github.com/v94lere/solon/issues/3)) : une
   pastille quand une version plus récente existe, un bouton pour la tirer et recréer les conteneurs.
-- **Importer depuis Docker Desktop** ([#4](https://github.com/v94lere/solon/issues/4)) : retrouver ses volumes
-  et les copier dans Solon, pour que changer d'outil ne coûte rien.
 - **Relayer les ports UDP publiés** ([#5](https://github.com/v94lere/solon/issues/5)), le dernier écart face à
   `docker run -p`.
 - **Rechargement à chaud depuis Windows** ([#7](https://github.com/v94lere/solon/issues/7)) : prévenir le
