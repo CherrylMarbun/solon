@@ -1,29 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { containers, engine, formatBytes, type ContainerSummary, type MachineMetrics, type StatSample } from "../api";
+import { containers, engine, formatBytes, type ContainerSummary, type StatSample } from "../api";
+import { emptyHistory, push, useMetrics, useWatchMetrics, type History } from "../metrics";
 import { EmptyState, IconPulse, PageHeader, Spark, hueOf, pushHistory } from "../components/ui";
-import { TimeChart, type ChartSeries, type Pt } from "../components/TimeChart";
+import { TimeChart, type ChartSeries } from "../components/TimeChart";
 
-const ENGINE_PERIOD_MS = 2000;
-/** Historique conservé en mémoire : la plus grande fenêtre affichable, plus un peu de marge. */
-const RETENTION_MS = 3_600_000 + 20_000;
 const WINDOWS = [60_000, 600_000, 3_600_000] as const;
 type WindowMs = (typeof WINDOWS)[number];
 type Metric = "cpu" | "mem" | "net";
 const ENGINE_ID = "__engine";
-
-interface EngineNow {
-  cpuPct: number;
-  memUsed: number;
-  memTotal: number;
-  diskUsed: number;
-  diskTotal: number;
-  rxRate: number;
-  txRate: number;
-  load1: number;
-  cpus: number;
-}
 
 interface ContainerNow {
   sample: StatSample;
@@ -32,24 +18,7 @@ interface ContainerNow {
   cpuHistory: number[];
 }
 
-interface History {
-  cpu: Pt[];
-  mem: Pt[];
-  net: Pt[];
-}
-
 type SortKey = "name" | "cpu" | "mem" | "net";
-
-function push(list: Pt[], p: Pt): Pt[] {
-  const cutoff = p.t - RETENTION_MS;
-  let i = 0;
-  while (i < list.length && list[i].t < cutoff) i++;
-  const next = i > 0 ? list.slice(i) : list.slice();
-  next.push(p);
-  return next;
-}
-
-const emptyHistory = (): History => ({ cpu: [], mem: [], net: [] });
 
 /** Teinte par conteneur : celle de l'avatar, écartée d'un cran tant qu'elle est trop proche d'une déjà prise
  *  (deux rouges côte à côte ne se distinguent pas sur une courbe). Déterministe pour un même ensemble de noms. */
@@ -69,12 +38,11 @@ function distinctHues(names: string[]): Map<string, number> {
 /** Activité : mesures en temps réel du moteur (processeur, mémoire, stockage, réseau) et des conteneurs. */
 export function ActivityView({ onOpenContainer }: { onOpenContainer: (id: string) => void }) {
   const { t } = useTranslation();
-  const [now, setNow] = useState<EngineNow | null>(null);
-  const [engineHist, setEngineHist] = useState<History>(emptyHistory);
+  // Compteurs du moteur : collectés en continu hors de cette vue, pour que l'historique survive à la
+  // navigation. La vue demande seulement la cadence rapide tant qu'elle est affichée.
+  const { now, history: engineHist, unavailable } = useMetrics();
+  useWatchMetrics();
   const [contHist, setContHist] = useState<Record<string, History>>({});
-  const [unavailable, setUnavailable] = useState<string | null>(null);
-  const prevRef = useRef<{ m: MachineMetrics; at: number } | null>(null);
-  const cpusRef = useRef(1);
   const [perContainer, setPerContainer] = useState<Record<string, ContainerNow>>({});
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "cpu", desc: true });
   const [windowMs, setWindowMs] = useState<WindowMs>(60_000);
@@ -89,48 +57,6 @@ export function ActivityView({ onOpenContainer }: { onOpenContainer: (id: string
   useEffect(() => {
     const id = window.setInterval(() => setClock(Date.now()), 1000);
     return () => clearInterval(id);
-  }, []);
-
-  // Compteurs du moteur toutes les 2 s ; pourcentages et débits par différence avec le relevé précédent.
-  useEffect(() => {
-    let cancelled = false;
-    let timer: number | undefined;
-    const tick = async () => {
-      try {
-        const m = await engine.metrics();
-        if (cancelled) return;
-        setUnavailable(null);
-        const at = performance.now();
-        const prev = prevRef.current;
-        prevRef.current = { m, at };
-        cpusRef.current = Math.max(1, m.cpus);
-        const memUsed = (m.mem_total_kb - m.mem_available_kb) * 1024;
-        const memTotal = m.mem_total_kb * 1024;
-        let cpuPct = 0;
-        let rxRate = 0;
-        let txRate = 0;
-        if (prev) {
-          const dt = Math.max((at - prev.at) / 1000, 0.1);
-          const dTotal = m.cpu_total_ticks - prev.m.cpu_total_ticks;
-          const dBusy = m.cpu_busy_ticks - prev.m.cpu_busy_ticks;
-          cpuPct = dTotal > 0 ? Math.min(100, Math.max(0, (100 * dBusy) / dTotal)) : 0;
-          rxRate = Math.max(0, m.net_rx_bytes - prev.m.net_rx_bytes) / dt;
-          txRate = Math.max(0, m.net_tx_bytes - prev.m.net_tx_bytes) / dt;
-          const ts = Date.now();
-          // Le processeur du moteur est exprimé comme les conteneurs : 100 % = un cœur entier.
-          setEngineHist((h) => ({ cpu: push(h.cpu, { t: ts, v: cpuPct * Math.max(1, m.cpus) }), mem: push(h.mem, { t: ts, v: memUsed }), net: push(h.net, { t: ts, v: rxRate + txRate }) }));
-        }
-        setNow({ cpuPct, memUsed, memTotal, diskUsed: m.disk_used_bytes, diskTotal: m.disk_total_bytes, rxRate, txRate, load1: m.load1, cpus: m.cpus });
-      } catch (e) {
-        if (!cancelled) setUnavailable(String(e));
-      }
-      if (!cancelled) timer = window.setTimeout(() => void tick(), ENGINE_PERIOD_MS);
-    };
-    void tick();
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-    };
   }, []);
 
   // Statistiques des conteneurs en flux (un canal pour tous), débits réseau par différence.

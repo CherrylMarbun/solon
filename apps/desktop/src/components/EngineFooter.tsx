@@ -24,7 +24,7 @@ export function EngineFooter({ compact = false }: { compact?: boolean }) {
   const { snapshot, serviceAvailable, ready } = useEngine();
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const load = useEngineLoad(ready && !compact, 3000);
+  const load = useEngineLoad(ready && !compact);
   const state = !serviceAvailable ? "service_unavailable" : (snapshot?.state ?? "stopped");
   const tone = state === "ready" ? "pill-ok" : state === "starting" || state === "stopping" || state === "degraded" ? "pill-warn" : state === "failed" || state === "service_unavailable" ? "pill-bad" : "pill-muted";
   const label = t(`engine.short.${state}`, { defaultValue: t(`engine.state.${state}`) });

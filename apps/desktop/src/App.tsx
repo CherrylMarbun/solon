@@ -3,6 +3,7 @@ import logo from "./assets/logo.png";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { EngineProvider, useEngine } from "./engine";
+import { MetricsProvider } from "./metrics";
 import "./accent";
 import { EngineFooter } from "./components/EngineFooter";
 import { Notices } from "./components/Notices";
@@ -280,7 +281,9 @@ function Shell() {
 export function App() {
   return (
     <EngineProvider>
-      <Shell />
+      <MetricsProvider>
+        <Shell />
+      </MetricsProvider>
     </EngineProvider>
   );
 }
