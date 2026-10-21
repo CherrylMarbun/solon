@@ -1396,3 +1396,28 @@ neuf ; les images passent par `docker save` / `docker load`. Les deux moteurs pe
 **Chemin « Docker Desktop présent » non vérifié** faute d'installation sur la machine de test ; seul le cas
 « absent » l'est. Installateur : **103.0 Mo**. Première contribution extérieure fusionnée (nettoyage des
 dossiers de plugins périmés, PR #9).
+
+## Mémoire rendue à Windows (21 octobre 2026)
+
+Le reproche numéro un fait aux moteurs de conteneurs sous Windows est que la machine grossit et ne rend
+rien. Mesure sur la machine de développement, moteur avec quatre conteneurs en marche, 2 Go alloués à la
+machine. Banc : `bench\mem-reclaim.ps1`.
+
+| Étape | `vmmem` côté Windows | Invité |
+|---|---|---|
+| Repos | 500 Mo | 516 Mo utilisés, 1 122 Mo libres |
+| 800 Mo alloués dans un conteneur (tmpfs) | **1 247 Mo** | 531 Mo utilisés, 268 Mo libres |
+| 35 s après suppression du conteneur | **571 Mo** | 522 Mo utilisés, 1 116 Mo libres |
+| +70 s à +175 s | 570 à 573 Mo | stable |
+
+**747 Mo pris, 676 Mo rendus en moins de 35 secondes**, soit 90 %. Le reliquat de 71 Mo au-dessus du
+repos ne bouge plus ensuite. Ce que ça doit aux deux mécanismes en place : les hints mémoire de HCS
+(`EnableHotHint`, `EnableColdHint`, `EnableColdDiscardHint`, comme WSL 2) côté hôte, et côté invité
+l'agent qui vide le cache et **compacte** la mémoire toutes les 30 s quand la charge est basse — sans
+compactage, les pages libérées restent fragmentées et le ballon ne peut pas les signaler.
+
+Deux limites honnêtes : la restitution n'est pas instantanée, elle suit le cycle de 30 s de l'agent ;
+et les autres moteurs n'ont pas été mesurés ici, faute de les avoir installés sur cette machine.
+
+Premier essai raté, gardé pour mémoire : `/dev/shm` vaut 64 Mo par défaut dans un conteneur Docker,
+donc le `dd` ne remplissait rien. D'où `--shm-size` dans le banc.
