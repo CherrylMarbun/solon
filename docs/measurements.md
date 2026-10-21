@@ -1387,3 +1387,12 @@ fichier Compose avant enregistrement. Le paquet `yaml` ajoute quelques dizaines 
 était déjà compilé pour Tauri. Installateur : **103.0 Mo**. Téléchargement et contrôle de l'installateur
 0.1.12 (102 Mo) depuis l'application en test automatisé : **4,5 s**. Les six formes d'erreur de
 `docker compose config` relevées dans le moteur sont chacune ramenées à la ligne fautive (test).
+
+## Version 0.1.14 (21 octobre 2026)
+
+Import depuis une installation Docker Desktop existante : son API sur `\\.\pipe\docker_engine` écrit chaque
+volume choisi dans un dossier temporaire Windows que Solon voit par solonfs, puis Solon le déballe dans un volume
+neuf ; les images passent par `docker save` / `docker load`. Les deux moteurs peuvent tourner en même temps.
+**Chemin « Docker Desktop présent » non vérifié** faute d'installation sur la machine de test ; seul le cas
+« absent » l'est. Installateur : **103.0 Mo**. Première contribution extérieure fusionnée (nettoyage des
+dossiers de plugins périmés, PR #9).
